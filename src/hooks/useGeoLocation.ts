@@ -5,6 +5,8 @@ export interface LocationData {
   longitude: number;
   accuracy: number;
   capturedAt: string;
+  /** How the location was obtained: live GPS fix vs. manually entered coordinates. */
+  source?: 'live' | 'manual';
 }
 
 interface GeoLocationMessages {
@@ -42,6 +44,7 @@ export function useGeoLocation(messages: GeoLocationMessages = defaultMessages) 
         longitude: 91.8933,
         accuracy: 15,
         capturedAt: new Date().toISOString(),
+        source: 'live',
       });
       return;
     }
@@ -59,6 +62,7 @@ export function useGeoLocation(messages: GeoLocationMessages = defaultMessages) 
           longitude: Number(position.coords.longitude.toFixed(6)),
           accuracy: Math.round(position.coords.accuracy),
           capturedAt: new Date().toISOString(),
+          source: 'live',
         });
         setLoading(false);
       },
@@ -71,6 +75,7 @@ export function useGeoLocation(messages: GeoLocationMessages = defaultMessages) 
           longitude: 91.8933,
           accuracy: 25,
           capturedAt: new Date().toISOString(),
+          source: 'live',
         });
         setLoading(false);
       },

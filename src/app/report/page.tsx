@@ -43,13 +43,21 @@ function ReportFormContent() {
   const searchParams = useSearchParams();
   const isOnline = useOnlineStatus();
   const { t, hazardName, severityName } = useI18n();
-  const { location, loading: geoLoading, error: geoError, captureLocation } = useGeoLocation({
+  const { location, loading: geoLoading, error: geoError, captureLocation, setLocation } = useGeoLocation({
     unsupported: t('report.gpsNotSupported'),
     weak: t('report.gpsWeakFallback'),
   });
 
   const [step, setStep] = useState<number>(1);
   const [reporterPhone, setReporterPhone] = useState<string>('');
+
+  // Step 2: Location source — live GPS capture or manually entered coordinates.
+  // Both write to the same `location` state, so the rest of the flow is unchanged.
+  const [locationMode, setLocationMode] = useState<'live' | 'manual'>('live');
+  const [manualLat, setManualLat] = useState<string>('');
+  const [manualLng, setManualLng] = useState<string>('');
+  const [manualTouched, setManualTouched] = useState<boolean>(false);
+  const [manualApplied, setManualApplied] = useState<boolean>(false);
 
   // Step 1: Incident Type
   const initialType = (searchParams.get('type') as IncidentType) || 'LANDSLIDE';
@@ -82,6 +90,60 @@ function ReportFormContent() {
     setReporterPhone(session.phone);
     captureLocation();
   }, [captureLocation, router]);
+
+  // ----- Step 2: Live GPS vs. manual coordinate entry -----
+  const parseDecimal = (raw: string, min: number, max: number): number | null => {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    const value = Number(trimmed);
+    if (!Number.isFinite(value)) return null;
+    if (value < min || value > max) return null;
+    return value;
+  };
+
+  const manualLatNum = parseDecimal(manualLat, -90, 90);
+  const manualLngNum = parseDecimal(manualLng, -180, 180);
+  const manualCoordsValid = manualLatNum !== null && manualLngNum !== null;
+
+  const switchLocationMode = (next: 'live' | 'manual') => {
+    setLocationMode(next);
+    if (next === 'manual') {
+      setManualTouched(false);
+      setManualApplied(false);
+      // Prefill with the last known position so users can fine-tune it.
+      if (location) {
+        setManualLat(String(location.latitude));
+        setManualLng(String(location.longitude));
+      }
+    }
+  };
+
+  // Apply the typed coordinates to the same `location` state used by GPS,
+  // keeping the review + submit pipeline untouched.
+  const applyManualCoords = () => {
+    setManualTouched(true);
+    if (!manualCoordsValid || manualLatNum === null || manualLngNum === null) return;
+    setLocation({
+      latitude: manualLatNum,
+      longitude: manualLngNum,
+      accuracy: 0,
+      capturedAt: new Date().toISOString(),
+      source: 'manual',
+    });
+    setManualApplied(true);
+  };
+
+  // Advance from Step 2; in manual mode, auto-apply valid coordinates first.
+  const goToPhotos = () => {
+    if (locationMode === 'manual') {
+      if (!manualCoordsValid) {
+        setManualTouched(true);
+        return;
+      }
+      applyManualCoords();
+    }
+    setStep(3);
+  };
 
   // Handle Photo selection & conversion to Base64
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -350,7 +412,7 @@ function ReportFormContent() {
         </div>
       )}
 
-      {/* STEP 2: GPS Location */}
+      {/* STEP 2: Location (Live GPS or Manual Coordinates) */}
       {step === 2 && (
         <div className="space-y-4">
           <div>
@@ -361,49 +423,145 @@ function ReportFormContent() {
           <div className="bg-white border border-[#E5EDE8] rounded-2xl p-5 space-y-4 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('report.gpsCoordinates')}</span>
+              {locationMode === 'live' && (
+                <button
+                  onClick={captureLocation}
+                  disabled={geoLoading}
+                  className="text-xs bg-[#F0FDF4] hover:bg-[#DCFCE7] text-emerald-800 font-bold px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors flex items-center gap-1.5"
+                >
+                  {geoLoading ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin" />
+                      {t('report.acquiring')}
+                    </>
+                  ) : (
+                    <>🔄 {t('report.refreshGps')}</>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Live GPS vs. Manual toggle */}
+            <div className="grid grid-cols-2 gap-1.5 bg-[#F7FAF8] border border-[#E5EDE8] rounded-xl p-1.5">
               <button
-                onClick={captureLocation}
-                disabled={geoLoading}
-                className="text-xs bg-[#F0FDF4] hover:bg-[#DCFCE7] text-emerald-800 font-bold px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors flex items-center gap-1.5"
+                type="button"
+                onClick={() => switchLocationMode('live')}
+                className={`py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  locationMode === 'live'
+                    ? 'bg-white text-emerald-800 shadow-sm ring-1 ring-emerald-700/20'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
-                {geoLoading ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin" />
-                    {t('report.acquiring')}
-                  </>
-                ) : (
-                  <>🔄 {t('report.refreshGps')}</>
-                )}
+                🛰️ {t('report.liveGps')}
+              </button>
+              <button
+                type="button"
+                onClick={() => switchLocationMode('manual')}
+                className={`py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  locationMode === 'manual'
+                    ? 'bg-white text-emerald-800 shadow-sm ring-1 ring-emerald-700/20'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                ⌨️ {t('report.manualEntry')}
               </button>
             </div>
 
-            {location ? (
-              <div className="bg-[#F7FAF8] border border-[#E5EDE8] rounded-xl p-4 space-y-2.5 font-mono text-xs text-gray-800">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">{t('report.latitude')}</span>
-                  <span className="text-gray-900 font-bold">{location.latitude}° N</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">{t('report.longitude')}</span>
-                  <span className="text-gray-900 font-bold">{location.longitude}° E</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">{t('report.accuracy')}</span>
-                  <span className="text-emerald-700 font-bold">{t('report.accuracyMeters', { meters: location.accuracy })}</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-gray-400 pt-2 border-t border-gray-200">
-                  <span>{t('report.capturedAt')}</span>
-                  <span>{new Date(location.capturedAt).toLocaleTimeString()}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-6 text-gray-400 text-xs">{t('report.gpsCapturing')}</div>
-            )}
+            {locationMode === 'live' ? (
+              <>
+                {location ? (
+                  <div className="bg-[#F7FAF8] border border-[#E5EDE8] rounded-xl p-4 space-y-2.5 font-mono text-xs text-gray-800">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">{t('report.latitude')}</span>
+                      <span className="text-gray-900 font-bold">{location.latitude}° N</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">{t('report.longitude')}</span>
+                      <span className="text-gray-900 font-bold">{location.longitude}° E</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">{t('report.accuracy')}</span>
+                      <span className="text-emerald-700 font-bold">{t('report.accuracyMeters', { meters: location.accuracy })}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px] text-gray-400 pt-2 border-t border-gray-200">
+                      <span>{t('report.capturedAt')}</span>
+                      <span>{new Date(location.capturedAt).toLocaleTimeString()}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-gray-400 text-xs">{t('report.gpsCapturing')}</div>
+                )}
 
-            {geoError && (
-            <p className="text-xs text-amber-800 bg-amber-50 p-3 rounded-xl border border-amber-200">
-              ⚠️ {geoError}
-            </p>
+                {geoError && (
+                  <p className="text-xs text-amber-800 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                    ⚠️ {geoError}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-gray-500 leading-relaxed">{t('report.manualHelper')}</p>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">{t('report.latitude')}</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={manualLat}
+                      onChange={(e) => {
+                        setManualLat(e.target.value);
+                        setManualTouched(true);
+                      }}
+                      placeholder={t('report.latitudePlaceholder')}
+                      className="w-full bg-white border border-[#E5EDE8] rounded-xl px-3.5 py-3 font-mono text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">{t('report.longitude')}</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={manualLng}
+                      onChange={(e) => {
+                        setManualLng(e.target.value);
+                        setManualTouched(true);
+                      }}
+                      placeholder={t('report.longitudePlaceholder')}
+                      className="w-full bg-white border border-[#E5EDE8] rounded-xl px-3.5 py-3 font-mono text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {manualTouched && !manualCoordsValid && (
+                  <p className="text-xs text-red-700 bg-red-50 p-3 rounded-xl border border-red-200">
+                    ⚠️ {t('report.errCoordinates')}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={applyManualCoords}
+                  disabled={!manualCoordsValid}
+                  className={`w-full font-bold py-3 rounded-xl text-xs transition-all flex items-center justify-center gap-2 ${
+                    manualCoordsValid
+                      ? 'bg-emerald-800 hover:bg-emerald-700 text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {manualApplied ? '✓ ' : '📌 '}
+                  {t('report.applyCoords')}
+                </button>
+
+                {manualApplied && location && location.source === 'manual' && (
+                  <div className="bg-[#F0FDF4] border border-[#DCFCE7] rounded-xl p-3 text-xs text-emerald-800 flex items-center justify-between gap-2">
+                    <span className="font-semibold">✓ {t('report.coordsApplied')}</span>
+                    <span className="font-mono font-bold">
+                      {location.latitude}, {location.longitude}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -415,7 +573,7 @@ function ReportFormContent() {
               {t('common.back')}
             </button>
             <button
-              onClick={() => setStep(3)}
+              onClick={goToPhotos}
               className="flex-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-xs"
             >
               {t('report.nextPhotos')}
@@ -635,7 +793,14 @@ function ReportFormContent() {
 
             <div className="flex justify-between items-center font-mono">
               <span className="text-gray-500 font-sans">{t('report.gpsLatLng')}</span>
-              <span className="text-gray-900">{location ? `${location.latitude}, ${location.longitude}` : t('report.captured')}</span>
+              <span className="text-gray-900 flex items-center gap-1.5">
+                {location ? `${location.latitude}, ${location.longitude}` : t('report.captured')}
+                {location?.source === 'manual' && (
+                  <span className="text-[9px] bg-amber-100 text-amber-800 font-sans font-bold px-1.5 py-0.5 rounded-md tracking-wide">
+                    {t('report.manualTag')}
+                  </span>
+                )}
+              </span>
             </div>
 
             <div className="flex justify-between items-center">
