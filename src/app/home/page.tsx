@@ -6,6 +6,7 @@ import { getDemoSession, DemoSession } from '@/lib/auth';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { getOfflineReportsForPhone, getPendingOfflineReports } from '@/lib/db';
 import { reportService } from '@/services/report.service';
+import { useI18n } from '@/i18n/LanguageProvider';
 
 interface ReportItem {
   id: string;
@@ -23,6 +24,7 @@ export default function HomePage() {
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const isOnline = useOnlineStatus();
+  const { t, hazardName } = useI18n();
 
   useEffect(() => {
     const s = getDemoSession();
@@ -87,35 +89,35 @@ export default function HomePage() {
     if (isOffline) {
       return (
         <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">
-          Pending Sync
+          {t('st.pendingSync')}
         </span>
       );
     }
     switch (status) {
       case 'RECEIVED':
-        return <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">Received</span>;
+        return <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.received')}</span>;
       case 'UNDER_REVIEW':
-        return <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">Under Review</span>;
+        return <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.underReview')}</span>;
       case 'VALIDATED':
-        return <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">Validated</span>;
+        return <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.validated')}</span>;
       case 'IN_PROGRESS':
-        return <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">In Progress</span>;
+        return <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.inProgress')}</span>;
       case 'RESOLVED':
-        return <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">Resolved</span>;
+        return <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.resolved')}</span>;
       case 'REJECTED':
-        return <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">Rejected</span>;
+        return <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.rejected')}</span>;
       default:
         return <span className="bg-gray-100 text-gray-700 text-[11px] px-2 py-0.5 rounded-full font-semibold">{status}</span>;
     }
   };
 
   const quickHazards = [
-    { type: 'LANDSLIDE', label: 'Landslide', icon: '🌄' },
-    { type: 'ROAD_BLOCKAGE', label: 'Road Block', icon: '🚧' },
-    { type: 'VISIBLE_CRACK', label: 'Visible Crack', icon: '⚡' },
-    { type: 'FLOODING', label: 'Flooding', icon: '🌊' },
-    { type: 'ROCKFALL', label: 'Rockfall', icon: '🪨' },
-    { type: 'OTHER_HAZARD', label: 'Other Hazard', icon: '⚠️' },
+    { type: 'LANDSLIDE', icon: '🌄' },
+    { type: 'ROAD_BLOCKAGE', icon: '🚧' },
+    { type: 'VISIBLE_CRACK', icon: '⚡' },
+    { type: 'FLOODING', icon: '🌊' },
+    { type: 'ROCKFALL', icon: '🪨' },
+    { type: 'OTHER_HAZARD', icon: '⚠️' },
   ];
 
   return (
@@ -123,13 +125,13 @@ export default function HomePage() {
       {/* 1. Welcome Card */}
       <div className="bg-white border border-[#E5EDE8] rounded-2xl p-4 shadow-xs flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Welcome Field Reporter</p>
-          <h2 className="text-base font-bold text-gray-900 font-mono mt-0.5">{session?.phone || '+91 Demo User'}</h2>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('home.welcomeEyebrow')}</p>
+          <h2 className="text-base font-bold text-gray-900 font-mono mt-0.5">{session?.phone || t('common.demoUser')}</h2>
         </div>
         <div className="bg-[#F0FDF4] border border-[#DCFCE7] rounded-xl px-3 py-1.5 text-right">
-          <span className="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">System Status</span>
+          <span className="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">{t('home.systemStatus')}</span>
           <span className={`text-xs font-bold ${isOnline ? 'text-emerald-800' : 'text-amber-700'}`}>
-            {isOnline ? '● Ready (Online)' : '● Offline Mode'}
+            {isOnline ? `● ${t('home.readyOnline')}` : `● ${t('home.offlineMode')}`}
           </span>
         </div>
       </div>
@@ -138,15 +140,15 @@ export default function HomePage() {
       <div className="bg-[#F0FDF4] border border-[#E5EDE8] rounded-2xl p-3.5 flex items-center justify-between text-xs text-emerald-900">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-semibold text-gray-800">GPS Position Active</span>
+          <span className="font-semibold text-gray-800">{t('home.gpsActive')}</span>
         </div>
         <div className="text-gray-500 font-mono text-[11px]">
           {pendingCount > 0 ? (
             <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-              {pendingCount} Pending Sync
+              {t('home.pendingSyncCount', { count: pendingCount })}
             </span>
           ) : (
-            <span className="text-emerald-700 font-medium">IndexedDB Synced</span>
+            <span className="text-emerald-700 font-medium">{t('home.idbSynced')}</span>
           )}
         </div>
       </div>
@@ -158,13 +160,13 @@ export default function HomePage() {
             <div className="space-y-1.5 max-w-[80%]">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-[11px] font-bold text-red-700 uppercase tracking-wider">
                 <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
-                Emergency Action
+                {t('home.emergencyAction')}
               </div>
               <h3 className="text-lg font-bold text-gray-900 leading-tight">
-                Report a Hazard / Incident
+                {t('home.reportTitle')}
               </h3>
               <p className="text-xs text-gray-500">
-                Report landslide, road blockage, visible cracks, flooding, or other field emergencies.
+                {t('home.reportDesc')}
               </p>
             </div>
             <div className="bg-red-600 text-white rounded-2xl p-3 shadow-md shadow-red-600/20 group-hover:scale-105 transition-transform shrink-0">
@@ -174,7 +176,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-bold text-red-700 group-hover:text-red-800">
-            <span>Start Field Report</span>
+            <span>{t('home.startReport')}</span>
             <span>→</span>
           </div>
         </div>
@@ -182,7 +184,7 @@ export default function HomePage() {
 
       {/* 4. QUICK REPORT TYPES */}
       <div className="space-y-2.5">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Quick Report Category</h3>
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('home.quickCategory')}</h3>
         <div className="grid grid-cols-3 gap-2">
           {quickHazards.map((item) => (
             <Link
@@ -192,7 +194,7 @@ export default function HomePage() {
             >
               <span className="text-2xl group-hover:scale-110 transition-transform">{item.icon}</span>
               <span className="text-xs font-semibold text-gray-800 group-hover:text-emerald-900 leading-tight">
-                {item.label}
+                {hazardName(item.type)}
               </span>
             </Link>
           ))}
@@ -202,9 +204,9 @@ export default function HomePage() {
       {/* 5. RECENT REPORTS */}
       <div className="space-y-3 pt-1">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Your Recent Reports</h3>
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('home.recentReports')}</h3>
           <Link href="/reports" className="text-xs text-emerald-800 hover:text-emerald-700 font-bold">
-            View All ({recentReports.length}) →
+            {t('home.viewAll', { count: recentReports.length })} →
           </Link>
         </div>
 
@@ -221,8 +223,8 @@ export default function HomePage() {
         ) : recentReports.length === 0 ? (
           <div className="bg-white border border-[#E5EDE8] rounded-2xl p-6 text-center text-gray-500 space-y-2 shadow-xs">
             <span className="text-3xl block">📋</span>
-            <p className="text-sm font-semibold text-gray-800">No reports submitted yet</p>
-            <p className="text-xs text-gray-400">Tap the button above to submit your first report.</p>
+            <p className="text-sm font-semibold text-gray-800">{t('home.noReportsTitle')}</p>
+            <p className="text-xs text-gray-400">{t('home.noReportsDesc')}</p>
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -234,13 +236,13 @@ export default function HomePage() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-emerald-800 font-mono">
-                    {report.incidentType.replace('_', ' ')}
+                    {hazardName(report.incidentType)}
                   </span>
                   {getStatusBadge(report.status, report.isOffline)}
                 </div>
                 <p className="text-xs text-gray-700 line-clamp-2 leading-relaxed">{report.description}</p>
                 <div className="flex items-center justify-between text-[11px] text-gray-400 font-mono pt-1 border-t border-gray-100">
-                  <span>Ref: {report.referenceId}</span>
+                  <span>{t('home.refLabel', { ref: report.referenceId })}</span>
                   <span>{new Date(report.createdAt).toLocaleDateString()}</span>
                 </div>
               </Link>

@@ -9,6 +9,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { saveOfflineReport } from '@/lib/db';
 import { reportService } from '@/services/report.service';
 import { uploadService } from '@/services/upload.service';
+import { useI18n } from '@/i18n/LanguageProvider';
 
 type IncidentType = 'LANDSLIDE' | 'VISIBLE_CRACK' | 'ROAD_BLOCKAGE' | 'ROCKFALL' | 'FLOODING' | 'OTHER_HAZARD';
 type UserSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -21,14 +22,19 @@ interface PhotoItem {
 
 export default function ReportPage() {
   return (
-    <Suspense fallback={
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-3">
-        <div className="w-10 h-10 border-3 border-emerald-800 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-500 text-xs font-semibold">Loading Report Form...</p>
-      </div>
-    }>
+    <Suspense fallback={<ReportLoading />}>
       <ReportFormContent />
     </Suspense>
+  );
+}
+
+function ReportLoading() {
+  const { t } = useI18n();
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-3">
+      <div className="w-10 h-10 border-3 border-emerald-800 border-t-transparent rounded-full animate-spin" />
+      <p className="text-gray-500 text-xs font-semibold">{t('report.loadingForm')}</p>
+    </div>
   );
 }
 
@@ -36,7 +42,11 @@ function ReportFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isOnline = useOnlineStatus();
-  const { location, loading: geoLoading, error: geoError, captureLocation } = useGeoLocation();
+  const { t, hazardName, severityName } = useI18n();
+  const { location, loading: geoLoading, error: geoError, captureLocation } = useGeoLocation({
+    unsupported: t('report.gpsNotSupported'),
+    weak: t('report.gpsWeakFallback'),
+  });
 
   const [step, setStep] = useState<number>(1);
   const [reporterPhone, setReporterPhone] = useState<string>('');
@@ -104,7 +114,7 @@ function ReportFormContent() {
   // Final Form Submission
   const handleSubmit = async () => {
     if (!description.trim()) {
-      setSubmitError('Please provide a brief description of the hazard.');
+      setSubmitError(t('report.errDescription'));
       setStep(4);
       return;
     }
@@ -168,7 +178,7 @@ function ReportFormContent() {
       try {
         await saveReportToIndexedDB(localId, finalLocation);
       } catch (dbErr) {
-        setSubmitError(err?.message || 'Failed to save report offline.');
+        setSubmitError(err?.message || t('report.errSaveOffline'));
       }
     } finally {
       setSubmitting(false);
@@ -201,12 +211,12 @@ function ReportFormContent() {
   };
 
   const hazardTypes: Array<{ type: IncidentType; label: string; icon: string; desc: string }> = [
-    { type: 'LANDSLIDE', label: 'Landslide', icon: '🌄', desc: 'Mudslide, slope collapse, debris flow' },
-    { type: 'VISIBLE_CRACK', label: 'Visible Crack', icon: '⚡', desc: 'Road crack, wall crack, hillside fissure' },
-    { type: 'ROAD_BLOCKAGE', label: 'Road Blockage', icon: '🚧', desc: 'Debris on road, fallen trees or rocks' },
-    { type: 'ROCKFALL', label: 'Rockfall', icon: '🪨', desc: 'Falling boulders or rocks on incline' },
-    { type: 'FLOODING', label: 'Flooding / Flash Flood', icon: '🌊', desc: 'High water overflow, river swell' },
-    { type: 'OTHER_HAZARD', label: 'Other Hazard', icon: '⚠️', desc: 'Any other dangerous slope condition' },
+    { type: 'LANDSLIDE', label: hazardName('LANDSLIDE'), icon: '🌄', desc: t('hz.landslideDesc') },
+    { type: 'VISIBLE_CRACK', label: hazardName('VISIBLE_CRACK'), icon: '⚡', desc: t('hz.visibleCrackDesc') },
+    { type: 'ROAD_BLOCKAGE', label: hazardName('ROAD_BLOCKAGE'), icon: '🚧', desc: t('hz.roadBlockageDesc') },
+    { type: 'ROCKFALL', label: hazardName('ROCKFALL'), icon: '🪨', desc: t('hz.rockfallDesc') },
+    { type: 'FLOODING', label: hazardName('FLOODING'), icon: '🌊', desc: t('hz.floodingDesc') },
+    { type: 'OTHER_HAZARD', label: hazardName('OTHER_HAZARD'), icon: '⚠️', desc: t('hz.otherHazardDesc') },
   ];
 
   if (submitSuccess) {
@@ -223,29 +233,27 @@ function ReportFormContent() {
         </div>
         <div className="space-y-1.5">
           <h2 className="text-xl font-bold text-gray-900">
-            {isSavedOffline ? 'Report Saved Offline' : 'Report Submitted!'}
+            {isSavedOffline ? t('report.savedOfflineTitle') : t('report.submittedTitle')}
           </h2>
           <p className="text-xs text-gray-600 font-medium">
-            {isSavedOffline
-              ? 'Your report is safely stored in IndexedDB and will auto-sync when internet returns.'
-              : 'Your report has been received by the NE-SHIELD disaster monitoring center.'}
+            {isSavedOffline ? t('report.savedOfflineDesc') : t('report.submittedDesc')}
           </p>
         </div>
 
         <div className="bg-[#F7FAF8] border border-[#E5EDE8] rounded-2xl p-4 font-mono text-left space-y-2 text-xs">
           <div className="flex justify-between">
-            <span className="text-gray-400">REFERENCE ID:</span>
+            <span className="text-gray-400">{t('report.referenceId')}</span>
             <span className="text-emerald-800 font-bold">{submittedRefId}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400">STATUS:</span>
+            <span className="text-gray-400">{t('report.status')}</span>
             <span className={isSavedOffline ? 'text-amber-700 font-bold' : 'text-emerald-700 font-bold'}>
-              {isSavedOffline ? 'PENDING SYNC' : 'RECEIVED'}
+              {isSavedOffline ? t('st.pendingSync') : t('st.received')}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400">HAZARD:</span>
-            <span className="text-gray-800 font-sans">{incidentType.replace('_', ' ')}</span>
+            <span className="text-gray-400">{t('report.hazard')}</span>
+            <span className="text-gray-800 font-sans">{hazardName(incidentType)}</span>
           </div>
         </div>
 
@@ -254,13 +262,13 @@ function ReportFormContent() {
             onClick={() => router.push('/reports')}
             className="w-full bg-[#F0FDF4] border border-[#DCFCE7] hover:bg-[#DCFCE7] text-emerald-800 font-bold py-3 rounded-xl text-xs transition-colors"
           >
-            VIEW MY REPORTS
+            {t('report.viewMyReports')}
           </button>
           <button
             onClick={() => router.push('/home')}
             className="w-full bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow-xs transition-colors"
           >
-            RETURN TO HOME
+            {t('report.returnHome')}
           </button>
         </div>
       </div>
@@ -272,13 +280,13 @@ function ReportFormContent() {
       {/* Wizard Progress Bar */}
       <div className="bg-white border border-[#E5EDE8] rounded-2xl p-3.5 space-y-2 shadow-xs">
         <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-          <span className="text-emerald-800 font-mono uppercase">STEP {step} OF 5</span>
+          <span className="text-emerald-800 font-mono uppercase">{t('report.stepXOfY', { step, total: 5 })}</span>
           <span className="text-gray-700">
-            {step === 1 && 'Hazard Type'}
-            {step === 2 && 'GPS Location'}
-            {step === 3 && 'Photos'}
-            {step === 4 && 'Details & Severity'}
-            {step === 5 && 'Review & Submit'}
+            {step === 1 && t('report.step1Name')}
+            {step === 2 && t('report.step2Name')}
+            {step === 3 && t('report.step3Name')}
+            {step === 4 && t('report.step4Name')}
+            {step === 5 && t('report.step5Name')}
           </span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
@@ -294,17 +302,15 @@ function ReportFormContent() {
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-start gap-3 text-amber-900">
           <span className="text-amber-600 text-base mt-0.5">📡</span>
           <div className="text-xs space-y-0.5">
-            <p className="font-bold text-amber-900">Offline Mode Active</p>
-            <p className="text-amber-800/90 leading-relaxed">
-              Your report will be saved securely on this device and automatically synced once connection returns.
-            </p>
+            <p className="font-bold text-amber-900">{t('report.offlineBannerTitle')}</p>
+            <p className="text-amber-800/90 leading-relaxed">{t('report.offlineBannerDesc')}</p>
           </div>
         </div>
       )}
 
       {submitError && (
         <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-2xl flex items-center gap-2">
-          <span className="font-bold">Error:</span> {submitError}
+          <span className="font-bold">{t('common.error')}</span> {submitError}
         </div>
       )}
 
@@ -312,8 +318,8 @@ function ReportFormContent() {
       {step === 1 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Select Hazard Category</h2>
-            <p className="text-xs text-gray-500">Choose the primary type of incident you observed</p>
+            <h2 className="text-lg font-bold text-gray-900">{t('report.selectHazardTitle')}</h2>
+            <p className="text-xs text-gray-500">{t('report.selectHazardSub')}</p>
           </div>
 
           <div className="grid grid-cols-1 gap-2.5">
@@ -348,13 +354,13 @@ function ReportFormContent() {
       {step === 2 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Capture GPS Position</h2>
-            <p className="text-xs text-gray-500">Satellite location coordinates for emergency response teams</p>
+            <h2 className="text-lg font-bold text-gray-900">{t('report.gpsTitle')}</h2>
+            <p className="text-xs text-gray-500">{t('report.gpsSub')}</p>
           </div>
 
           <div className="bg-white border border-[#E5EDE8] rounded-2xl p-5 space-y-4 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">GPS Coordinates</span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('report.gpsCoordinates')}</span>
               <button
                 onClick={captureLocation}
                 disabled={geoLoading}
@@ -363,10 +369,10 @@ function ReportFormContent() {
                 {geoLoading ? (
                   <>
                     <div className="w-3 h-3 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin" />
-                    Acquiring...
+                    {t('report.acquiring')}
                   </>
                 ) : (
-                  <>🔄 Refresh GPS</>
+                  <>🔄 {t('report.refreshGps')}</>
                 )}
               </button>
             </div>
@@ -374,32 +380,30 @@ function ReportFormContent() {
             {location ? (
               <div className="bg-[#F7FAF8] border border-[#E5EDE8] rounded-xl p-4 space-y-2.5 font-mono text-xs text-gray-800">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">LATITUDE:</span>
+                  <span className="text-gray-400">{t('report.latitude')}</span>
                   <span className="text-gray-900 font-bold">{location.latitude}° N</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">LONGITUDE:</span>
+                  <span className="text-gray-400">{t('report.longitude')}</span>
                   <span className="text-gray-900 font-bold">{location.longitude}° E</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">ACCURACY:</span>
-                  <span className="text-emerald-700 font-bold">± {location.accuracy} meters</span>
+                  <span className="text-gray-400">{t('report.accuracy')}</span>
+                  <span className="text-emerald-700 font-bold">{t('report.accuracyMeters', { meters: location.accuracy })}</span>
                 </div>
                 <div className="flex justify-between text-[10px] text-gray-400 pt-2 border-t border-gray-200">
-                  <span>CAPTURED AT:</span>
+                  <span>{t('report.capturedAt')}</span>
                   <span>{new Date(location.capturedAt).toLocaleTimeString()}</span>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-6 text-gray-400 text-xs">
-                Capturing GPS location...
-              </div>
+              <div className="text-center py-6 text-gray-400 text-xs">{t('report.gpsCapturing')}</div>
             )}
 
             {geoError && (
-              <p className="text-xs text-amber-800 bg-amber-50 p-3 rounded-xl border border-amber-200">
-                ⚠️ {geoError}
-              </p>
+            <p className="text-xs text-amber-800 bg-amber-50 p-3 rounded-xl border border-amber-200">
+              ⚠️ {geoError}
+            </p>
             )}
           </div>
 
@@ -408,13 +412,13 @@ function ReportFormContent() {
               onClick={() => setStep(1)}
               className="flex-1 bg-white border border-[#E5EDE8] hover:bg-gray-50 text-gray-700 font-bold py-3.5 rounded-xl text-xs shadow-xs"
             >
-              BACK
+              {t('common.back')}
             </button>
             <button
               onClick={() => setStep(3)}
               className="flex-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-xs"
             >
-              NEXT: PHOTOS →
+              {t('report.nextPhotos')}
             </button>
           </div>
         </div>
@@ -424,8 +428,8 @@ function ReportFormContent() {
       {step === 3 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Upload Hazard Photos</h2>
-            <p className="text-xs text-gray-500">Capture with camera or choose up to 5 evidence photos</p>
+            <h2 className="text-lg font-bold text-gray-900">{t('report.photosTitle')}</h2>
+            <p className="text-xs text-gray-500">{t('report.photosSub')}</p>
           </div>
 
           <div className="space-y-3">
@@ -433,8 +437,8 @@ function ReportFormContent() {
               {/* Camera Trigger */}
               <label className="flex flex-col items-center justify-center p-5 bg-white border-2 border-dashed border-emerald-300 hover:border-emerald-600 rounded-2xl cursor-pointer transition-all text-center shadow-xs">
                 <span className="text-3xl mb-1">📷</span>
-                <span className="text-xs font-bold text-gray-800">Take Photo</span>
-                <span className="text-[10px] text-gray-400">Device Camera</span>
+                <span className="text-xs font-bold text-gray-800">{t('report.takePhoto')}</span>
+                <span className="text-[10px] text-gray-400">{t('report.deviceCamera')}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -447,8 +451,8 @@ function ReportFormContent() {
               {/* Gallery Upload */}
               <label className="flex flex-col items-center justify-center p-5 bg-white border-2 border-dashed border-gray-200 hover:border-gray-400 rounded-2xl cursor-pointer transition-all text-center shadow-xs">
                 <span className="text-3xl mb-1">🖼️</span>
-                <span className="text-xs font-bold text-gray-800">Choose Files</span>
-                <span className="text-[10px] text-gray-400">Photo Gallery</span>
+                <span className="text-xs font-bold text-gray-800">{t('report.chooseFiles')}</span>
+                <span className="text-[10px] text-gray-400">{t('report.photoGallery')}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -462,12 +466,12 @@ function ReportFormContent() {
             {/* Photo Previews */}
             {photos.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">ATTACHED PHOTOS ({photos.length}/5):</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('report.attachedPhotos', { count: photos.length })}</p>
                 <div className="grid grid-cols-3 gap-2">
                   {photos.map((p) => (
                     <div key={p.id} className="relative rounded-xl overflow-hidden aspect-square border border-gray-200 group">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.base64} alt="Hazard preview" className="w-full h-full object-cover" />
+                      <img src={p.base64} alt={t('report.photoAlt')} className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => removePhoto(p.id)}
@@ -487,13 +491,13 @@ function ReportFormContent() {
               onClick={() => setStep(2)}
               className="flex-1 bg-white border border-[#E5EDE8] hover:bg-gray-50 text-gray-700 font-bold py-3.5 rounded-xl text-xs shadow-xs"
             >
-              BACK
+              {t('common.back')}
             </button>
             <button
               onClick={() => setStep(4)}
               className="flex-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-xs"
             >
-              NEXT: DETAILS →
+              {t('report.nextDetails')}
             </button>
           </div>
         </div>
@@ -503,17 +507,17 @@ function ReportFormContent() {
       {step === 4 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Hazard Description & Severity</h2>
-            <p className="text-xs text-gray-500">Provide observations and risk factors</p>
+            <h2 className="text-lg font-bold text-gray-900">{t('report.detailsTitle')}</h2>
+            <p className="text-xs text-gray-500">{t('report.detailsSub')}</p>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Describe the Situation *</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{t('report.describeLabel')}</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="E.g., Soil sliding on NH-10 near cliff section. Traffic blocked..."
+                placeholder={t('report.describePlaceholder')}
                 rows={3}
                 className="w-full bg-white border border-[#E5EDE8] rounded-xl p-3.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20 transition-all"
                 required
@@ -521,7 +525,7 @@ function ReportFormContent() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">Assessed Severity Level</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5">{t('report.severityLabel')}</label>
               <div className="grid grid-cols-4 gap-1.5">
                 {(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as UserSeverity[]).map((sev) => (
                   <button
@@ -540,14 +544,14 @@ function ReportFormContent() {
                         : 'bg-white border-[#E5EDE8] text-gray-600'
                     }`}
                   >
-                    {sev}
+                    {severityName(sev)}
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="space-y-2 pt-1">
-              <label className="block text-xs font-bold text-gray-700">Observed Hazard Impacts</label>
+              <label className="block text-xs font-bold text-gray-700">{t('report.impactsLabel')}</label>
               
               <label className="flex items-center gap-3 bg-white border border-[#E5EDE8] rounded-xl p-3.5 cursor-pointer shadow-xs">
                 <input
@@ -556,7 +560,7 @@ function ReportFormContent() {
                   onChange={(e) => setRoadBlocked(e.target.checked)}
                   className="w-4 h-4 rounded text-emerald-700 bg-white border-gray-300 focus:ring-emerald-700"
                 />
-                <span className="text-xs font-medium text-gray-800">Road Blocked / Traffic Interrupted</span>
+                <span className="text-xs font-medium text-gray-800">{t('report.roadBlockedLabel')}</span>
               </label>
 
               <label className="flex items-center gap-3 bg-white border border-[#E5EDE8] rounded-xl p-3.5 cursor-pointer shadow-xs">
@@ -566,7 +570,7 @@ function ReportFormContent() {
                   onChange={(e) => setPeopleNearby(e.target.checked)}
                   className="w-4 h-4 rounded text-emerald-700 bg-white border-gray-300 focus:ring-emerald-700"
                 />
-                <span className="text-xs font-medium text-gray-800">People / Citizens Nearby or Trapped</span>
+                <span className="text-xs font-medium text-gray-800">{t('report.peopleNearbyLabel')}</span>
               </label>
 
               <label className="flex items-center gap-3 bg-white border border-[#E5EDE8] rounded-xl p-3.5 cursor-pointer shadow-xs">
@@ -576,7 +580,7 @@ function ReportFormContent() {
                   onChange={(e) => setBuildingsNearby(e.target.checked)}
                   className="w-4 h-4 rounded text-emerald-700 bg-white border-gray-300 focus:ring-emerald-700"
                 />
-                <span className="text-xs font-medium text-gray-800">Buildings / Infrastructure Threatened</span>
+                <span className="text-xs font-medium text-gray-800">{t('report.buildingsNearbyLabel')}</span>
               </label>
             </div>
           </div>
@@ -586,13 +590,13 @@ function ReportFormContent() {
               onClick={() => setStep(3)}
               className="flex-1 bg-white border border-[#E5EDE8] hover:bg-gray-50 text-gray-700 font-bold py-3.5 rounded-xl text-xs shadow-xs"
             >
-              BACK
+              {t('common.back')}
             </button>
             <button
               onClick={() => setStep(5)}
               className="flex-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs shadow-xs"
             >
-              NEXT: REVIEW →
+              {t('report.nextReview')}
             </button>
           </div>
         </div>
@@ -602,48 +606,48 @@ function ReportFormContent() {
       {step === 5 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Review & Submit Report</h2>
-            <p className="text-xs text-gray-500">Verify all information before final dispatch</p>
+            <h2 className="text-lg font-bold text-gray-900">{t('report.reviewTitle')}</h2>
+            <p className="text-xs text-gray-500">{t('report.reviewSub')}</p>
           </div>
 
           <div className="bg-white border border-[#E5EDE8] rounded-2xl p-4 space-y-3 shadow-xs text-xs">
             <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <span className="text-gray-500 font-medium">REPORTER PHONE:</span>
+              <span className="text-gray-500 font-medium">{t('report.reporterPhone')}</span>
               <span className="text-gray-900 font-mono font-bold">{reporterPhone}</span>
             </div>
 
             <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <span className="text-gray-500 font-medium">HAZARD CATEGORY:</span>
-              <span className="text-emerald-800 font-bold">{incidentType.replace('_', ' ')}</span>
+              <span className="text-gray-500 font-medium">{t('report.hazardCategory')}</span>
+              <span className="text-emerald-800 font-bold">{hazardName(incidentType)}</span>
             </div>
 
             <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-              <span className="text-gray-500 font-medium">SEVERITY:</span>
-              <span className="text-gray-900 font-bold">{userSeverity}</span>
+              <span className="text-gray-500 font-medium">{t('report.severity')}</span>
+              <span className="text-gray-900 font-bold">{severityName(userSeverity)}</span>
             </div>
 
             <div className="space-y-1 pb-2 border-b border-gray-100">
-              <span className="text-gray-500 font-medium block">DESCRIPTION:</span>
+              <span className="text-gray-500 font-medium block">{t('report.description')}</span>
               <p className="text-gray-800 bg-[#F7FAF8] p-3 rounded-xl border border-gray-200 leading-relaxed">
                 {description}
               </p>
             </div>
 
             <div className="flex justify-between items-center font-mono">
-              <span className="text-gray-500 font-sans">GPS LAT/LNG:</span>
-              <span className="text-gray-900">{location ? `${location.latitude}, ${location.longitude}` : 'Captured'}</span>
+              <span className="text-gray-500 font-sans">{t('report.gpsLatLng')}</span>
+              <span className="text-gray-900">{location ? `${location.latitude}, ${location.longitude}` : t('report.captured')}</span>
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-gray-500">PHOTOS ATTACHED:</span>
-              <span className="text-gray-900 font-bold">{photos.length} photo(s)</span>
+              <span className="text-gray-500">{t('report.photosAttached')}</span>
+              <span className="text-gray-900 font-bold">{t('report.photoCount', { count: photos.length })}</span>
             </div>
           </div>
 
           <div className="bg-[#F0FDF4] border border-[#DCFCE7] p-3.5 rounded-2xl text-xs text-emerald-900 flex items-center justify-between">
-            <span className="font-semibold">CONNECTION STATE:</span>
+            <span className="font-semibold">{t('report.connectionState')}</span>
             <span className={`font-bold ${isOnline ? 'text-emerald-700' : 'text-amber-700'}`}>
-              {isOnline ? 'ONLINE (Direct Next.js Submit)' : 'OFFLINE (IndexedDB Local Staging)'}
+              {isOnline ? t('report.onlineSubmit') : t('report.offlineStaging')}
             </span>
           </div>
 
@@ -653,7 +657,7 @@ function ReportFormContent() {
               disabled={submitting}
               className="flex-1 bg-white border border-[#E5EDE8] hover:bg-gray-50 text-gray-700 font-bold py-3.5 rounded-xl text-xs shadow-xs"
             >
-              BACK
+              {t('common.back')}
             </button>
             <button
               onClick={handleSubmit}
@@ -663,10 +667,10 @@ function ReportFormContent() {
               {submitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  SUBMITTING...
+                  {t('report.submitting')}
                 </>
               ) : (
-                'SUBMIT REPORT 🚀'
+                t('report.submit')
               )}
             </button>
           </div>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 export interface LocationData {
   latitude: number;
@@ -7,17 +7,34 @@ export interface LocationData {
   capturedAt: string;
 }
 
-export function useGeoLocation() {
+interface GeoLocationMessages {
+  /** Message shown when the Geolocation API is unavailable. */
+  unsupported: string;
+  /** Message shown when the GPS signal fails (e.g. permission denied / timeout). */
+  weak: string;
+}
+
+const defaultMessages: GeoLocationMessages = {
+  unsupported: 'Geolocation API is not supported by your browser',
+  weak: 'GPS signal weak or unavailable. Using estimated location.',
+};
+
+export function useGeoLocation(messages: GeoLocationMessages = defaultMessages) {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Keep the latest messages (they can change with the app language) without
+  // destabilizing the captureLocation callback identity.
+  const messagesRef = useRef<GeoLocationMessages>(messages);
+  messagesRef.current = messages;
 
   const captureLocation = useCallback(() => {
     setLoading(true);
     setError(null);
 
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
-      setError('Geolocation API is not supported by your browser');
+      setError(messagesRef.current.unsupported);
       setLoading(false);
       // Fallback location for testing
       setLocation({
@@ -47,7 +64,7 @@ export function useGeoLocation() {
       },
       (err) => {
         console.warn('[Geolocation Warning]:', err.message);
-        setError(`GPS signal weak (${err.message}). Using estimated location.`);
+        setError(messagesRef.current.weak);
         // Default fallback (Shillong, Meghalaya area) for demo robustness
         setLocation({
           latitude: 25.5788,

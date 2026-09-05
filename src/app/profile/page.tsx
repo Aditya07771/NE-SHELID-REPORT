@@ -6,6 +6,8 @@ import { getDemoSession, clearDemoSession, DemoSession } from '@/lib/auth';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { syncManager } from '@/lib/sync';
 import { getPendingOfflineReports } from '@/lib/db';
+import { useI18n } from '@/i18n/LanguageProvider';
+import { locales, localeMeta } from '@/i18n/config';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -14,6 +16,7 @@ export default function ProfilePage() {
   const [syncing, setSyncing] = useState<boolean>(false);
   const [syncMessage, setSyncMessage] = useState<string>('');
   const isOnline = useOnlineStatus();
+  const { t, locale, setLocale } = useI18n();
 
   useEffect(() => {
     const s = getDemoSession();
@@ -36,7 +39,7 @@ export default function ProfilePage() {
 
   const handleManualSync = async () => {
     if (!isOnline) {
-      setSyncMessage('Device is currently offline. Connect to internet to sync.');
+      setSyncMessage(t('profile.offlineMsg'));
       return;
     }
     setSyncing(true);
@@ -44,10 +47,11 @@ export default function ProfilePage() {
 
     try {
       const result = await syncManager.syncAllPending();
-      setSyncMessage(`Successfully synced ${result.synced} report(s). ${result.failed > 0 ? `${result.failed} failed.` : ''}`);
+      const failures = result.failed > 0 ? ` ${t('profile.syncFailures', { count: result.failed })}` : '';
+      setSyncMessage(`${t('profile.syncSuccess', { count: result.synced })}${failures}`);
       await checkPending();
     } catch (e: any) {
-      setSyncMessage(`Sync failed: ${e?.message || 'Network error'}`);
+      setSyncMessage(t('profile.syncError', { message: e?.message || 'Network error' }));
     } finally {
       setSyncing(false);
     }
@@ -67,19 +71,45 @@ export default function ProfilePage() {
         </div>
         <div className="space-y-0.5">
           <span className="text-[10px] font-bold text-emerald-800 bg-[#F0FDF4] border border-[#DCFCE7] px-2 py-0.5 rounded-md uppercase tracking-wider">
-            VERIFIED REPORTER
+            {t('profile.verifiedReporter')}
           </span>
-          <h2 className="text-base font-bold text-gray-900 font-mono">{session?.phone || '+91 Demo User'}</h2>
-          <p className="text-xs text-gray-400">NE-SHIELD Field Crowd Network</p>
+          <h2 className="text-base font-bold text-gray-900 font-mono">{session?.phone || t('common.demoUser')}</h2>
+          <p className="text-xs text-gray-400">{t('profile.fieldNetwork')}</p>
         </div>
+      </div>
+
+      {/* Language Settings Card */}
+      <div className="bg-white border border-[#E5EDE8] rounded-3xl p-5 shadow-xs space-y-3">
+        <div>
+          <h3 className="text-sm font-bold text-gray-900">{t('profile.languageTitle')}</h3>
+          <p className="text-xs text-gray-500 mt-1">{t('profile.languageSub')}</p>
+        </div>
+        <div className="grid grid-cols-1 gap-2">
+          {locales.map((code) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => setLocale(code)}
+              className={`flex items-center justify-between px-4 py-3 rounded-xl border text-xs font-bold transition-all ${
+                locale === code
+                  ? 'bg-[#F0FDF4] border-emerald-700 text-emerald-800 ring-1 ring-emerald-700/20'
+                  : 'bg-white border-[#E5EDE8] text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <span>{localeMeta[code].nativeName}</span>
+              {locale === code && <span className="text-emerald-700 text-sm">✓</span>}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-gray-400">{t('profile.autoDetect')}</p>
       </div>
 
       {/* Offline Sync Card */}
       <div className="bg-white border border-[#E5EDE8] rounded-3xl p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-gray-900">IndexedDB Offline Queue</h3>
-            <p className="text-xs text-gray-500">Local pending submissions stored on device</p>
+            <h3 className="text-sm font-bold text-gray-900">{t('profile.offlineQueueTitle')}</h3>
+            <p className="text-xs text-gray-500">{t('profile.offlineQueueSub')}</p>
           </div>
           <span
             className={`text-xs font-bold font-mono px-3 py-1 rounded-full border ${
@@ -88,7 +118,7 @@ export default function ProfilePage() {
                 : 'bg-emerald-50 text-emerald-800 border-emerald-200'
             }`}
           >
-            {pendingCount} Pending
+            {t('profile.pendingCount', { count: pendingCount })}
           </span>
         </div>
 
@@ -110,39 +140,39 @@ export default function ProfilePage() {
           {syncing ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              SYNCING WITH MONGODB...
+              {t('profile.syncing')}
             </>
           ) : (
-            `SYNC NOW (${pendingCount} REPORT${pendingCount === 1 ? '' : 'S'})`
+            t('profile.syncNow', { count: pendingCount })
           )}
         </button>
       </div>
 
       {/* App & System Status */}
       <div className="bg-white border border-[#E5EDE8] rounded-3xl p-5 shadow-xs space-y-3 text-xs">
-        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">SYSTEM & DEVICE HEALTH</h3>
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('profile.systemHealth')}</h3>
 
         <div className="space-y-2 font-mono">
           <div className="flex justify-between py-1.5 border-b border-gray-100">
-            <span className="text-gray-500">INTERNET CONNECTIVITY:</span>
+            <span className="text-gray-500">{t('profile.internetConnectivity')}</span>
             <span className={isOnline ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
-              {isOnline ? 'ONLINE' : 'OFFLINE'}
+              {isOnline ? t('common.online') : t('common.offline')}
             </span>
           </div>
 
           <div className="flex justify-between py-1.5 border-b border-gray-100">
-            <span className="text-gray-500">GPS ACCURACY:</span>
-            <span className="text-emerald-800 font-bold">HIGH PRECISION</span>
+            <span className="text-gray-500">{t('profile.gpsAccuracy')}</span>
+            <span className="text-emerald-800 font-bold">{t('profile.highPrecision')}</span>
           </div>
 
           <div className="flex justify-between py-1.5 border-b border-gray-100">
-            <span className="text-gray-500">STORAGE ENGINE:</span>
-            <span className="text-gray-800">IndexedDB + MongoDB</span>
+            <span className="text-gray-500">{t('profile.storageEngine')}</span>
+            <span className="text-gray-800">{t('profile.storageValue')}</span>
           </div>
 
           <div className="flex justify-between py-1.5 text-[11px] text-gray-400">
-            <span>APP VERSION:</span>
-            <span>NE-SHIELD PWA v2.0.0</span>
+            <span>{t('profile.appVersion')}</span>
+            <span>{t('profile.appVersionValue')}</span>
           </div>
         </div>
       </div>
@@ -152,7 +182,7 @@ export default function ProfilePage() {
         onClick={handleLogout}
         className="w-full bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-3.5 rounded-2xl text-xs transition-colors shadow-xs"
       >
-        LOGOUT DEMO SESSION
+        {t('profile.logout')}
       </button>
     </div>
   );

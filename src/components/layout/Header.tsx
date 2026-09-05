@@ -3,9 +3,12 @@
 import React from 'react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import Link from 'next/link';
+import { useI18n } from '@/i18n/LanguageProvider';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 
 export const Header: React.FC = () => {
   const isOnline = useOnlineStatus();
+  const { t } = useI18n();
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-[#E5EDE8] text-gray-900 px-4 py-3 shadow-xs flex items-center justify-between">
@@ -19,11 +22,14 @@ export const Header: React.FC = () => {
           <h1 className="font-bold text-base leading-none tracking-tight text-gray-900 flex items-center gap-1.5">
             NE-SHIELD <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-1.5 py-0.5 rounded-md font-semibold">CROWD</span>
           </h1>
-          <p className="text-[11px] text-gray-500 font-medium leading-tight mt-0.5">Disaster Hazard Reporting</p>
+          <p className="text-[11px] text-gray-500 font-medium leading-tight mt-0.5">{t('header.tagline')}</p>
         </div>
       </Link>
 
       <div className="flex items-center gap-2">
+        {/* Language switcher */}
+        <LanguageSwitcher />
+
         {/* Network status badge */}
         <div
           className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
@@ -37,7 +43,7 @@ export const Header: React.FC = () => {
               isOnline ? 'bg-emerald-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]' : 'bg-amber-500'
             }`}
           />
-          {isOnline ? 'Online' : 'Offline'}
+          {isOnline ? t('common.online') : t('common.offline')}
         </div>
       </div>
     </header>

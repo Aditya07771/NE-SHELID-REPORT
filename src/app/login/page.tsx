@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveDemoSession } from '@/lib/auth';
+import { useI18n } from '@/i18n/LanguageProvider';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [phone, setPhone] = useState('+919876543210');
   const [password, setPassword] = useState('demo1234');
   const [loading, setLoading] = useState(false);
@@ -16,11 +18,11 @@ export default function LoginPage() {
     setError('');
 
     if (!phone || phone.trim().length < 6) {
-      setError('Please enter a valid phone number');
+      setError(t('login.errPhone'));
       return;
     }
     if (!password) {
-      setError('Please enter a password');
+      setError(t('login.errPassword'));
       return;
     }
 
@@ -42,7 +44,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-gray-900 tracking-tight">NE-SHIELD CROWD</h2>
-          <p className="text-xs text-gray-500 font-medium mt-1">Disaster Reporting & Field Hazard Network</p>
+          <p className="text-xs text-gray-500 font-medium mt-1">{t('login.tagline')}</p>
         </div>
 
         {error && (
@@ -56,7 +58,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Phone Number</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">{t('login.phoneLabel')}</label>
             <div className="relative">
               <input
                 type="tel"
@@ -67,11 +69,11 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <p className="text-[11px] text-gray-400 mt-1">Enter any demo phone number</p>
+            <p className="text-[11px] text-gray-400 mt-1">{t('login.phoneHelper')}</p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Password</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">{t('login.passwordLabel')}</label>
             <input
               type="password"
               value={password}
@@ -80,7 +82,7 @@ export default function LoginPage() {
               className="w-full bg-white border border-[#E5EDE8] rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20 transition-all font-mono"
               required
             />
-            <p className="text-[11px] text-gray-400 mt-1">Demo authentication enabled</p>
+            <p className="text-[11px] text-gray-400 mt-1">{t('login.passwordHelper')}</p>
           </div>
 
           <button
@@ -91,17 +93,17 @@ export default function LoginPage() {
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Signing In...
+                {t('login.signingIn')}
               </>
             ) : (
-              'LOGIN TO REPORT HAZARD'
+              t('login.cta')
             )}
           </button>
         </form>
 
         <div className="mt-6 pt-4 border-t border-gray-100 text-center">
           <p className="text-[11px] text-gray-400 font-medium">
-            NE-SHIELD Field Citizen Reporter • PWA Demo v2.0
+            {t('login.footer')}
           </p>
         </div>
       </div>

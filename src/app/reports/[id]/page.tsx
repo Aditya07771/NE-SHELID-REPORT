@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { reportService } from '@/services/report.service';
 import { getOfflineReportByLocalId } from '@/lib/db';
+import { useI18n } from '@/i18n/LanguageProvider';
 
 interface ReportDetail {
   id: string;
@@ -29,6 +30,7 @@ export default function ReportDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
+  const { t, hazardName, severityName } = useI18n();
 
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -61,7 +63,7 @@ export default function ReportDetailPage() {
             isOffline: true,
           });
         } else {
-          setError('Offline report not found');
+          setError(t('detail.offlineNotFound'));
         }
       } else {
         const res = await reportService.getReportById(id);
@@ -81,12 +83,12 @@ export default function ReportDetailPage() {
             statusHistory: res.data.statusHistory || [],
           });
         } else {
-          setError('Report detail could not be retrieved from server.');
+          setError(t('detail.errServer'));
         }
       }
     } catch (e: any) {
       console.error('[Report Detail] Error:', e);
-      setError('Failed to load report detail.');
+      setError(t('detail.errLoad'));
     } finally {
       setLoading(false);
     }
@@ -94,19 +96,19 @@ export default function ReportDetailPage() {
 
   const getStatusBadge = (status: string, isOffline?: boolean) => {
     if (isOffline) {
-      return <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs px-3 py-1 rounded-full font-bold">Pending Sync</span>;
+      return <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs px-3 py-1 rounded-full font-bold">{t('st.pendingSync')}</span>;
     }
     switch (status) {
       case 'RECEIVED':
-        return <span className="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1 rounded-full font-bold">Received</span>;
+        return <span className="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1 rounded-full font-bold">{t('st.received')}</span>;
       case 'UNDER_REVIEW':
-        return <span className="bg-purple-50 text-purple-700 border border-purple-200 text-xs px-3 py-1 rounded-full font-bold">Under Review</span>;
+        return <span className="bg-purple-50 text-purple-700 border border-purple-200 text-xs px-3 py-1 rounded-full font-bold">{t('st.underReview')}</span>;
       case 'VALIDATED':
-        return <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs px-3 py-1 rounded-full font-bold">Validated</span>;
+        return <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs px-3 py-1 rounded-full font-bold">{t('st.validated')}</span>;
       case 'IN_PROGRESS':
-        return <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs px-3 py-1 rounded-full font-bold">In Progress</span>;
+        return <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs px-3 py-1 rounded-full font-bold">{t('st.inProgress')}</span>;
       case 'RESOLVED':
-        return <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs px-3 py-1 rounded-full font-bold">Resolved</span>;
+        return <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs px-3 py-1 rounded-full font-bold">{t('st.resolved')}</span>;
       default:
         return <span className="bg-gray-100 text-gray-700 text-xs px-3 py-1 rounded-full font-bold">{status}</span>;
     }
@@ -114,11 +116,11 @@ export default function ReportDetailPage() {
 
   // Timeline steps: Received -> Under Review -> Validated -> In Progress -> Resolved
   const timelineSteps = [
-    { key: 'RECEIVED', label: 'Report Received', desc: 'Dispatched to NE-SHIELD GIS API' },
-    { key: 'UNDER_REVIEW', label: 'Under Review', desc: 'SDRF / District Authority reviewing incident' },
-    { key: 'VALIDATED', label: 'Field Validated', desc: 'Verified by local ground teams' },
-    { key: 'IN_PROGRESS', label: 'Action In Progress', desc: 'Response machinery deployed' },
-    { key: 'RESOLVED', label: 'Hazard Resolved', desc: 'Site cleared & safe' },
+    { key: 'RECEIVED', label: t('tl.received'), desc: t('tl.receivedDesc') },
+    { key: 'UNDER_REVIEW', label: t('tl.underReview'), desc: t('tl.underReviewDesc') },
+    { key: 'VALIDATED', label: t('tl.validated'), desc: t('tl.validatedDesc') },
+    { key: 'IN_PROGRESS', label: t('tl.inProgress'), desc: t('tl.inProgressDesc') },
+    { key: 'RESOLVED', label: t('tl.resolved'), desc: t('tl.resolvedDesc') },
   ];
 
   const getStepState = (stepKey: string, currentStatus: string) => {
@@ -149,12 +151,12 @@ export default function ReportDetailPage() {
     return (
       <div className="bg-white border border-[#E5EDE8] rounded-3xl p-6 text-center space-y-4 shadow-xs my-6">
         <span className="text-4xl block">⚠️</span>
-        <h2 className="text-base font-bold text-gray-900">{error || 'Report not found'}</h2>
+        <h2 className="text-base font-bold text-gray-900">{error || t('detail.notFound')}</h2>
         <Link
           href="/reports"
           className="inline-block bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs"
         >
-          ← Back to Reports
+          {t('detail.backToReports')}
         </Link>
       </div>
     );
@@ -165,10 +167,10 @@ export default function ReportDetailPage() {
       {/* Top Header Navigation */}
       <div className="flex items-center justify-between">
         <Link href="/reports" className="text-xs font-bold text-emerald-800 hover:text-emerald-700 flex items-center gap-1">
-          ← Back to Reports
+          {t('detail.backToReports')}
         </Link>
         <span className="font-mono text-xs font-bold text-gray-500 bg-white border border-[#E5EDE8] px-3 py-1 rounded-full shadow-xs">
-          REF: {report.referenceId}
+          {t('reports.refLabel', { ref: report.referenceId })}
         </span>
       </div>
 
@@ -176,21 +178,21 @@ export default function ReportDetailPage() {
       <div className="bg-white border border-[#E5EDE8] rounded-3xl p-5 shadow-xs space-y-3">
         <div className="flex items-start justify-between">
           <div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">INCIDENT TYPE</span>
-            <h1 className="text-xl font-bold text-gray-900 mt-0.5">{report.incidentType.replace('_', ' ')}</h1>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">{t('detail.incidentType')}</span>
+            <h1 className="text-xl font-bold text-gray-900 mt-0.5">{hazardName(report.incidentType)}</h1>
           </div>
           {getStatusBadge(report.status, report.isOffline)}
         </div>
 
         <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs font-mono text-gray-500">
-          <span>SUBMITTED: {new Date(report.createdAt).toLocaleString()}</span>
-          <span className="font-bold text-gray-800">SEVERITY: {report.userSeverity}</span>
+          <span>{t('detail.submitted')} {new Date(report.createdAt).toLocaleString()}</span>
+          <span className="font-bold text-gray-800">{t('detail.severity')} {severityName(report.userSeverity)}</span>
         </div>
       </div>
 
       {/* Vertical Status Timeline */}
       <div className="bg-white border border-[#E5EDE8] rounded-3xl p-5 shadow-xs space-y-3">
-        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">RESPONSE TIMELINE</h2>
+        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('detail.responseTimeline')}</h2>
         <div className="space-y-4 pt-1">
           {timelineSteps.map((step, idx) => {
             const state = getStepState(step.key, report.status);
@@ -232,7 +234,7 @@ export default function ReportDetailPage() {
 
       {/* Description & Details */}
       <div className="bg-white border border-[#E5EDE8] rounded-3xl p-5 shadow-xs space-y-3 text-xs">
-        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">FIELD OBSERVATION DETAILS</h2>
+        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('detail.fieldDetails')}</h2>
         <p className="text-gray-800 leading-relaxed bg-[#F7FAF8] p-3.5 rounded-2xl border border-[#E5EDE8]">
           {report.description}
         </p>
@@ -240,11 +242,11 @@ export default function ReportDetailPage() {
         {report.location && (
           <div className="pt-2 space-y-1.5 font-mono text-gray-600 border-t border-gray-100 text-[11px]">
             <div className="flex justify-between">
-              <span>LATITUDE:</span>
+              <span>{t('detail.latitude')}</span>
               <span className="text-gray-900 font-bold">{report.location.latitude}° N</span>
             </div>
             <div className="flex justify-between">
-              <span>LONGITUDE:</span>
+              <span>{t('detail.longitude')}</span>
               <span className="text-gray-900 font-bold">{report.location.longitude}° E</span>
             </div>
           </div>
@@ -255,13 +257,13 @@ export default function ReportDetailPage() {
       {report.images && report.images.length > 0 && (
         <div className="bg-white border border-[#E5EDE8] rounded-3xl p-5 shadow-xs space-y-3">
           <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-            PHOTO EVIDENCE ({report.images.length})
+            {t('detail.photoEvidence', { count: report.images.length })}
           </h2>
           <div className="grid grid-cols-2 gap-2">
             {report.images.map((img, i) => (
               <div key={i} className="rounded-2xl overflow-hidden aspect-video border border-gray-200 bg-gray-100">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.url || img.base64} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
+                <img src={img.url || img.base64} alt={t('detail.evidenceAlt', { index: i + 1 })} className="w-full h-full object-cover" />
               </div>
             ))}
           </div>

@@ -3,9 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useI18n } from '@/i18n/LanguageProvider';
 
 export const BottomNav: React.FC = () => {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   // Hide nav on login page
   if (pathname === '/login' || pathname === '/') {
@@ -14,7 +16,7 @@ export const BottomNav: React.FC = () => {
 
   const items = [
     {
-      name: 'Home',
+      name: t('nav.home'),
       href: '/home',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -23,7 +25,7 @@ export const BottomNav: React.FC = () => {
       ),
     },
     {
-      name: 'Report',
+      name: t('nav.report'),
       href: '/report',
       isPrimary: true,
       icon: (
@@ -33,7 +35,7 @@ export const BottomNav: React.FC = () => {
       ),
     },
     {
-      name: 'My Reports',
+      name: t('nav.myReports'),
       href: '/reports',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -42,7 +44,7 @@ export const BottomNav: React.FC = () => {
       ),
     },
     {
-      name: 'Profile',
+      name: t('nav.profile'),
       href: '/profile',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -69,7 +71,7 @@ export const BottomNav: React.FC = () => {
                   {item.icon}
                 </div>
                 <span className="text-[10px] font-bold text-emerald-800 mt-0.5 tracking-wider uppercase">
-                  REPORT
+                  {item.name}
                 </span>
               </Link>
             );

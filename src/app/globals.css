@@ -24,7 +24,10 @@
 body {
   color: #1F2937;
   background-color: #F7FAF8;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  /* Fallbacks cover Devanagari (Hindi) and Bengali/Assamese scripts on devices
+     whose default sans-serif stack lacks glyphs for them. */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+    'Noto Sans Devanagari', 'Mangal', 'Nirmala UI', 'Noto Sans Bengali', 'Shonar Bangla', 'Vrinda', sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 

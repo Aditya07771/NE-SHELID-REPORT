@@ -6,6 +6,7 @@ import { getDemoSession } from '@/lib/auth';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { getOfflineReportsForPhone } from '@/lib/db';
 import { reportService } from '@/services/report.service';
+import { useI18n } from '@/i18n/LanguageProvider';
 
 interface ReportItem {
   id: string;
@@ -24,6 +25,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [activeFilter, setActiveFilter] = useState<string>('ALL');
   const isOnline = useOnlineStatus();
+  const { t, hazardName } = useI18n();
 
   useEffect(() => {
     const session = getDemoSession();
@@ -96,19 +98,19 @@ export default function ReportsPage() {
 
   const getStatusBadge = (status: string, isOffline?: boolean) => {
     if (isOffline) {
-      return <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">Pending Sync</span>;
+      return <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.pendingSync')}</span>;
     }
     switch (status) {
       case 'RECEIVED':
-        return <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">Received</span>;
+        return <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.received')}</span>;
       case 'UNDER_REVIEW':
-        return <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">Under Review</span>;
+        return <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.underReview')}</span>;
       case 'VALIDATED':
-        return <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">Validated</span>;
+        return <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.validated')}</span>;
       case 'IN_PROGRESS':
-        return <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">In Progress</span>;
+        return <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.inProgress')}</span>;
       case 'RESOLVED':
-        return <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">Resolved</span>;
+        return <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{t('st.resolved')}</span>;
       default:
         return <span className="bg-gray-100 text-gray-700 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">{status}</span>;
     }
@@ -117,13 +119,13 @@ export default function ReportsPage() {
   const getSeverityBadge = (sev: string) => {
     switch (sev) {
       case 'CRITICAL':
-        return <span className="text-[10px] bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded-md border border-red-200">CRITICAL</span>;
+        return <span className="text-[10px] bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded-md border border-red-200 uppercase">{t('sev.critical')}</span>;
       case 'HIGH':
-        return <span className="text-[10px] bg-orange-50 text-orange-700 font-bold px-2 py-0.5 rounded-md border border-orange-200">HIGH</span>;
+        return <span className="text-[10px] bg-orange-50 text-orange-700 font-bold px-2 py-0.5 rounded-md border border-orange-200 uppercase">{t('sev.high')}</span>;
       case 'MEDIUM':
-        return <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded-md border border-amber-200">MEDIUM</span>;
+        return <span className="text-[10px] bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded-md border border-amber-200 uppercase">{t('sev.medium')}</span>;
       default:
-        return <span className="text-[10px] bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-md border border-emerald-200">LOW</span>;
+        return <span className="text-[10px] bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-md border border-emerald-200 uppercase">{t('sev.low')}</span>;
     }
   };
 
@@ -131,14 +133,25 @@ export default function ReportsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">My Hazard Reports</h2>
-          <p className="text-xs text-gray-500">Track status and official responses to your submissions</p>
+          <h2 className="text-lg font-bold text-gray-900">{t('reports.title')}</h2>
+          <p className="text-xs text-gray-500">{t('reports.subtitle')}</p>
         </div>
       </div>
 
       {/* Filter Chips */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-semibold">
-        {['ALL', 'RECEIVED', 'UNDER_REVIEW', 'VALIDATED', 'PENDING_SYNC'].map((f) => (
+        {['ALL', 'RECEIVED', 'UNDER_REVIEW', 'VALIDATED', 'PENDING_SYNC'].map((f) => {
+          const filterName =
+            f === 'ALL'
+              ? t('common.all')
+              : f === 'RECEIVED'
+              ? t('st.received')
+              : f === 'UNDER_REVIEW'
+              ? t('st.underReview')
+              : f === 'VALIDATED'
+              ? t('st.validated')
+              : t('st.pendingSync');
+          return (
           <button
             key={f}
             onClick={() => handleFilter(f)}
@@ -148,9 +161,10 @@ export default function ReportsPage() {
                 : 'bg-white text-gray-600 border-[#E5EDE8] hover:bg-gray-50'
             }`}
           >
-            {f.replace('_', ' ')}
+            {filterName}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {loading ? (
@@ -166,15 +180,15 @@ export default function ReportsPage() {
       ) : filteredReports.length === 0 ? (
         <div className="bg-white border border-[#E5EDE8] rounded-2xl p-8 text-center text-gray-500 space-y-2 shadow-xs my-4">
           <span className="text-4xl block">📁</span>
-          <h3 className="text-base font-bold text-gray-800">No reports found</h3>
+          <h3 className="text-base font-bold text-gray-800">{t('reports.noReportsTitle')}</h3>
           <p className="text-xs text-gray-400 max-w-xs mx-auto">
-            You don't have any reports matching this filter tag.
+            {t('reports.noReportsDesc')}
           </p>
           <Link
             href="/report"
             className="inline-block mt-3 bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs"
           >
-            + Create New Report
+            {t('reports.createNew')}
           </Link>
         </div>
       ) : (
@@ -188,7 +202,7 @@ export default function ReportsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-gray-900">
-                    {report.incidentType.replace('_', ' ')}
+                    {hazardName(report.incidentType)}
                   </span>
                   {getSeverityBadge(report.userSeverity)}
                 </div>
@@ -200,7 +214,7 @@ export default function ReportsPage() {
               </p>
 
               <div className="flex items-center justify-between text-[11px] text-gray-400 font-mono pt-2 border-t border-gray-100">
-                <span>REF: {report.referenceId}</span>
+                <span>{t('reports.refLabel', { ref: report.referenceId })}</span>
                 <span>{new Date(report.createdAt).toLocaleDateString()}</span>
               </div>
             </Link>

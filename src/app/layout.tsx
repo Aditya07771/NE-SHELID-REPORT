@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { LanguageProvider } from '@/i18n/LanguageProvider';
 
 export const metadata: Metadata = {
   title: 'NE-SHIELD Crowd Reporter PWA',
@@ -30,11 +31,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[#F7FAF8] text-gray-900 min-h-screen antialiased">
-        <div className="max-w-md mx-auto min-h-screen bg-[#F7FAF8] border-x border-[#E5EDE8] flex flex-col relative pb-20 shadow-xl">
-          <Header />
-          <main className="flex-1 px-4 py-4 overflow-y-auto">{children}</main>
-          <BottomNav />
-        </div>
+        <LanguageProvider>
+          <div className="max-w-md mx-auto min-h-screen bg-[#F7FAF8] border-x border-[#E5EDE8] flex flex-col relative pb-20 shadow-xl">
+            <Header />
+            <main className="flex-1 px-4 py-4 overflow-y-auto">{children}</main>
+            <BottomNav />
+          </div>
+        </LanguageProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `
